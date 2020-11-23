@@ -36,14 +36,14 @@
 #define LCD_SWITCH_PIN 2
 
 /* CONSTANTS */
-constexpr int   kDataPerFile      = 30;
-constexpr long  kDataReadInterval = 1000;    // In millisecond
-constexpr long  kLcdOnInterval    = 10000;   // In millisecond
-constexpr float kBurdenRes        = 33.0f;   // In Ohms
-constexpr float kInputIRmsMax     = 100.0f;  // In Amperes
-constexpr float kInputVRms        = 127.0f;  // In Vrms
-constexpr float kSctFactor        = 0.0005f;
-constexpr float kSctTurns         = 2000.0f; // Number os turns in the SCT-013 secondary
+constexpr int   kDataPerFile              = 30;
+constexpr unsigned long kDataReadInterval = 1000;    // In millisecond
+constexpr unsigned long kLcdOnInterval    = 10000;   // In millisecond
+constexpr float kBurdenRes                = 33.0f;   // In Ohms
+constexpr float kInputIRmsMax             = 100.0f;  // In Amperes
+constexpr float kInputVRms                = 127.0f;  // In Vrms
+constexpr float kSctFactor                = 0.0005f;
+constexpr float kSctTurns                 = 2000.0f; // Number os turns in the SCT-013 secondary
 
 /* OBJECTS DECLARATIONS */
 //DataSet measuresToSend(MESUR_PER_FILE);

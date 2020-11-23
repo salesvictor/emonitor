@@ -19,7 +19,7 @@ template <int max_size>
 class DataSet
 {
   public:
-    void setFirstEpoch(int first_epoch) {
+    void setFirstEpoch(uint32_t first_epoch) {
       measurements_.first_epoch = first_epoch;
       n_measures_ = 0; // Goes back to beggining
     }
