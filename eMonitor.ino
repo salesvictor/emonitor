@@ -53,7 +53,6 @@ LiquidCrystal lcd(9, 8, 6, 5, 4, 3);      // Pins connected to the LCD
 PushButton switchButton(LCD_SWITCH_PIN);  // Object to handle the LCD switch button
 
 DataSet<kDataPerFile> toSend; // Data to be converted to JSON
-Measurements<kDataPerFile> data;
 StaticJsonDocument<600> doc;  // Data converted to JSON
 
 /* DATA READ */
@@ -169,7 +168,7 @@ void exportToJSON()
   // Don't forget to change this value to match your requirement.
   // Use arduinojson.org/v6/assistant to compute the capacity.
   
-  data = toSend.getData();
+  auto& data = toSend.getData();
   doc.clear();
   doc["initTime"] = data.first_epoch;
   JsonArray currentData = doc.createNestedArray("current");
