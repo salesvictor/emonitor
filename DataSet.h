@@ -1,14 +1,12 @@
 //#ifndef DATASET_UTILS_H
 //#define DATASET_UTILS_H
 
-#include "Queue.h"
-
 template <int max_size>
 struct Measurements
 {
-  int   first_epoch;
-  float current[max_size];
-  float power[max_size];
+  uint32_t first_epoch;
+  float    current[max_size];
+  float    power[max_size];
 };
 
 struct Measure
@@ -17,7 +15,7 @@ struct Measure
   float power;
 };
 
-template <int max_size>;
+template <int max_size>
 class DataSet
 {
   public:
@@ -39,7 +37,7 @@ class DataSet
       return n_measures_;
     }
 
-    const Measurements<max_size> getData() const
+    const Measurements<max_size> &getData() const
     {
       return measurements_;
     }

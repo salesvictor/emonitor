@@ -24,6 +24,7 @@
 #include <LiquidCrystal.h>
 #include <SPI.h>
 #include <Wire.h>           // For I2C protocol
+#include <ArduinoJson.h>    // For converting the data Structure
 
 #include "DataSet.h"
 #include "EmonLib.h"        // Current sensor lib
@@ -31,37 +32,34 @@
 #include "RTClib.h"         // For clock
 
 /* DEFINING PINS */
-#define SCT_PIN A1         // Pino 15 - Current read
+#define SCT_PIN A1          // Current sensor
 #define LCD_SWITCH_PIN 2
 
-/* DEFINING CONSTANTS */
-
 /* CONSTANTS */
-constexpr int   kDataPerFile      = 60;
+constexpr int   kDataPerFile      = 30;
 constexpr long  kDataReadInterval = 1000;    // In millisecond
 constexpr long  kLcdOnInterval    = 10000;   // In millisecond
-constexpr float kBurdenRes        = 33.0f;   // Ohms
-constexpr float kInputIRmsMax     = 100.0f;  // Amperes
-constexpr float kInputVRms        = 127.0f;  // Vrms
+constexpr float kBurdenRes        = 33.0f;   // In Ohms
+constexpr float kInputIRmsMax     = 100.0f;  // In Amperes
+constexpr float kInputVRms        = 127.0f;  // In Vrms
 constexpr float kSctFactor        = 0.0005f;
-//const float vcc = 5.0; // In Volts
-//const float R1 = 10 ^ 4, R2 = 10 ^ 4; // In Ohms
+constexpr float kSctTurns         = 2000.0f; // Number os turns in the SCT-013 secondary
 
 /* OBJECTS DECLARATIONS */
 //DataSet measuresToSend(MESUR_PER_FILE);
 EnergyMonitor emon1;                      // Object to handle the current sensor
 RTC_DS1307 rtc;                           // Object to handle the DS1307 clock
 LiquidCrystal lcd(9, 8, 6, 5, 4, 3);      // Pins connected to the LCD
-PushButton switchButton(LCD_SWITCH_PIN);
+PushButton switchButton(LCD_SWITCH_PIN);  // Object to handle the LCD switch button
 
 DataSet<kDataPerFile> toSend; // Data to be converted to JSON
+Measurements<kDataPerFile> data;
+StaticJsonDocument<600> doc;  // Data converted to JSON
 
 /* DATA READ */
-float mIrms;
-float mPower;
-DateTime currentTime;
-
-//float tarifa = 0.3907;
+float mIrms;          // In Arms
+float mPower;         // In kW
+DateTime currentTime; // RCT times are saved here
 
 /* AUXILIAR VARIABLES */
 int dataReadCount = 0;
@@ -81,14 +79,13 @@ void setup()
   Serial.print("INITIALIZING E-MONITOR...");
 
   /* Defining INPUT and OUTPUT pins */
-  pinMode(SCT_PIN, INPUT);  // define o pino 15 como entrada
+  pinMode(SCT_PIN, INPUT);
 
   /* Initializing LCD */
   lcd.begin(16, 2);
 
   /* Initiliazing current handler */
-  // NOTE: Please doc what 2000 is
-  double cal = 2000 / kBurdenRes;  // Calibration parameter
+  double cal = kSctTurns / kBurdenRes;  // Calibration parameter
   emon1.current(SCT_PIN, cal);
 
   /* Initializing push button */
@@ -106,10 +103,9 @@ void setup()
     //rtc.adjust(DateTime(2020, 11, 21, 19, 24, 00)); // Adjust clock date and time
   }
 
-  //measuresToSend.initialize(60);
-  Serial.println("DONE");
-
   lcd.noDisplay();
+  
+  Serial.println("DONE");
 }
 
 void loop ()
@@ -119,8 +115,9 @@ void loop ()
   // Checking if data should be sent:
   if (dataReadCount == kDataPerFile)
   {
+    toSend.setFirstEpoch(rtc.now().unixtime());
     exportToJSON();
-    toSend.setFirstEpoch(now());
+    dataReadCount = 0;
   }
 
   // Checking if data should be read:
@@ -130,12 +127,12 @@ void loop ()
 
     // NOTE: Please doc what 1480 and 1000.0f are
     mIrms  = emon1.calcIrms(1480);
-    mPower = mIrms * kInputVRms / 1000.0f;
+    mPower = mIrms * kInputVRms / 1000.0f; // Power in kW
     
-    toSend.addData({mIrms, mPower};
+    toSend.addData({mIrms, mPower});
     dataReadCount++;
     
-    printDataToLCD(mCurrent, mPower); // Printing current and power on the LCD
+    printDataToLCD(mIrms, mPower); // Printing current and power on the LCD
   }
 
   // Checking if LCD should be turned on:
@@ -166,16 +163,28 @@ void printDataToLCD(double current, double power)
 
 void exportToJSON()
 {
-  for (int i = 0; i < kDataPerFile; ++i)
-  {
-    Measure data = toSend.getData(i);
-    Serial.print("    Current: ");
-    Serial.print(data.current);
-    Serial.println(" A");
-    Serial.print("    Power: ");
-    Serial.print(data.power);
-    Serial.println(" kW");
+  // Allocate the JSON document
+  //
+  // Inside the brackets, 500 is the RAM allocated to this document.
+  // Don't forget to change this value to match your requirement.
+  // Use arduinojson.org/v6/assistant to compute the capacity.
+  
+  data = toSend.getData();
+  doc.clear();
+  doc["initTime"] = data.first_epoch;
+  JsonArray currentData = doc.createNestedArray("current");
+  JsonArray powerData = doc.createNestedArray("power");
+  
+  for (int i = 0; i < kDataPerFile; i++) { 
+    currentData.add(data.current[i]);
+    powerData.add(data.power[i]);
   }
+  
+  // Generate the minified JSON and send it to the Serial port.
+  //serializeJson(doc, Serial); //Without \n
+
+  // Generate the prettified JSON and send it to the Serial port.
+  serializeJsonPretty(doc, Serial); //With \n
 }
 
 void turnLCDOn()
